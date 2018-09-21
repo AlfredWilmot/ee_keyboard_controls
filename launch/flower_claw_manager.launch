@@ -1,0 +1,16 @@
+<!-- -*- mode: XML -*- -->
+
+<launch>
+    <node name="dynamixel_manager" pkg="dynamixel_controllers" type="controller_manager.py" required="true" output="screen">
+        <rosparam>
+            namespace: dxl_manager
+            serial_ports:
+                d_port:
+                    port_name: "/dev/serial/by-id/usb-Xevelabs_USB2AX_74031303437351C0A002-if00"
+                    baud_rate: 500000
+                    min_motor_id: 1
+                    max_motor_id: 100
+                    update_rate: 100
+        </rosparam>
+    </node>
+</launch>
