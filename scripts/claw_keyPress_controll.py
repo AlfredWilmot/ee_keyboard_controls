@@ -32,8 +32,12 @@ class ClawMotor:
         self.load = 0.0             # float value representing calculated load from I-draw.
         self.overloadValue = 0.3    # Motor must not exceed this load-value, or will raise overload error exceprion and become unresponseive until power is cycled.
         self.sign = sign            # used to define the rotation-orientation to close claw.
+        self.maxAngle = 3.0         # Radians.
+        self.minAngle = 0.8          # --||--
+
         self.initSubscriber()       # Initializes subscription to motor's load value.
         self.initPublisher()        # Initializes publication to motor's joint angle (goal_pos).
+        self.maxAngle
 
         self.jointValue = 0.0       # Value used to control joint position.
         self.jointIncrement = 0.1
@@ -44,7 +48,7 @@ class ClawMotor:
     def loadValue_callBack(self, msg):
         self.load = msg.load
         #rospy.loginfo(rospy.get_caller_id() + " load value: %f", self.load)
-    
+
     def initPublisher(self):
         self.pub = rospy.Publisher('/' + self.name + '_controller/command', Float64, queue_size=1)  # Creates a new publisher for every claw-motor instance.
         rospy.init_node('claw_commander', anonymous=True)                                           # Initialize a node for the publisher.
@@ -52,7 +56,7 @@ class ClawMotor:
 
     def isOverload(self):
         #return (True if (self.load >= self.overloadValue) or (self.load <= -1*self.overloadValue) else False)
-        
+
         if self.load >= self.overloadValue or self.load <= -self.overloadValue:
             # In overloaded state: get outta there!
             return True
@@ -63,33 +67,33 @@ class ClawMotor:
 
     # returns true if joint-value is within the premitted joint range.
     def inRange(self):
-        return (True if (self.jointValue > 0.0 and self.jointValue < 3.7) else False)
+        return (True if (self.jointValue > self.minValue and self.jointValue < self.maxAngle) else False)
 
 
 
 
     def openClaw(self, openValue = 0.1):
 
-        if self.jointValue < 3.7:   
+        if self.jointValue < self.maxAngle:
             self.jointValue += self.sign * openValue
 
 
 
     def closeClaw(self, openValue = 0.1):
 
-        if self.jointValue > openValue: 
+        if self.jointValue > openValue:
             self.jointValue -= self.sign * openValue
-        
+
         # Default to 0.0 if below joint value.
-        if self.jointValue < openValue:
-            self.jointValue = 0.0
+        if self.jointValue < self.minAngle or self.jointValue < openValue:
+            self.jointValue = self.minAngle
 
 
 
     # Method that makes motor attempt to avoid overload conditions.
     def control_motor(self, key):
 
-        
+
         if key == Key.up:
             self.closeClaw(0.05)
         if key == Key.down:
@@ -110,7 +114,14 @@ claw_motor_72 = ClawMotor('claw_motor_72', 1)
 claw_motor_73 = ClawMotor('claw_motor_73', 1)
 
 
+claw_motor_71.jointValue = claw_motor_71.maxAngle
+claw_motor_72.jointValue = claw_motor_72.maxAngle
+claw_motor_73.jointValue = claw_motor_73.maxAngle
 
+#Open gripper
+claw_motor_71.pub.publish(claw_motor_71.jointValue)
+claw_motor_72.pub.publish(claw_motor_72.jointValue)
+claw_motor_73.pub.publish(claw_motor_73.jointValue)
 
 ###################
 # KEYLOGGER STUFF #
@@ -127,9 +138,9 @@ def on_press(key):
         #print('\n\n Final count_fwd value: ' + str(counter_fwd) + '\n')
 
         #Open gripper
-        claw_motor_71.pub.publish(0.0)
-        claw_motor_72.pub.publish(0.0)
-        claw_motor_73.pub.publish(0.0)
+        claw_motor_71.pub.publish(claw_motor_71.maxAngle)
+        claw_motor_72.pub.publish(claw_motor_72.maxAngle)
+        claw_motor_73.pub.publish(claw_motor_73.maxAngle)
 
         #Make sure motor isn't overloaded when in resting position (caused by gear backlash)
         # claw_motor_71.control_motor(key)
