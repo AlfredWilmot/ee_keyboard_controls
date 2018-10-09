@@ -32,15 +32,14 @@ class ClawMotor:
         self.load = 0.0             # float value representing calculated load from I-draw.
         self.overloadValue = 0.3    # Motor must not exceed this load-value, or will raise overload error exceprion and become unresponseive until power is cycled.
         self.sign = sign            # used to define the rotation-orientation to close claw.
-        self.maxAngle = 3.0         # Radians.
-        self.minAngle = 0.8          # --||--
+        self.maxAngle = 5#4.2         # Radians.
+        self.minAngle = -5#0.5          # --||--
+
 
         self.initSubscriber()       # Initializes subscription to motor's load value.
         self.initPublisher()        # Initializes publication to motor's joint angle (goal_pos).
-        self.maxAngle
 
         self.jointValue = 0.0       # Value used to control joint position.
-        self.jointIncrement = 0.1
 
     def initSubscriber(self):
         rospy.Subscriber('/' + self.name + "_controller/state", JointState, self.loadValue_callBack)
@@ -74,34 +73,42 @@ class ClawMotor:
 
     def openClaw(self, openValue = 0.1):
 
+        # if below, increment joint value.
         if self.jointValue < self.maxAngle:
             self.jointValue += self.sign * openValue
+
+        # if, after incrementing, now above joint value: reduce back to max allowed joint value.
+        if self.jointValue > self.maxAngle:
+            self.jointValue = self.maxAngle
 
 
 
     def closeClaw(self, openValue = 0.1):
 
-        if self.jointValue > openValue:
+        # if above, decrement joint value.
+        if self.jointValue > self.minAngle:
             self.jointValue -= self.sign * openValue
 
-        # Default to 0.0 if below joint value.
-        if self.jointValue < self.minAngle or self.jointValue < openValue:
+        # if, after decrementing, now below joint value: increase back to min allowed joint value.
+        if self.jointValue < self.minAngle:
             self.jointValue = self.minAngle
 
 
-
     # Method that makes motor attempt to avoid overload conditions.
-    def control_motor(self, key):
+    def control_motor(self, key, mag = 1.0):
 
 
         if key == Key.up:
-            self.closeClaw(0.05)
-        if key == Key.down:
-            self.openClaw(0.05)
+            self.closeClaw(mag)
+        elif key == Key.down:
+            self.openClaw(mag)
 
         self.pub.publish(self.jointValue)
 
-
+    # Method for stopping wheel-mode motors immediately.
+    def wheelModeStop(self):
+        self.jointValue = 0.0
+        self.pub.publish(self.jointValue)
 
 
 #######################
@@ -113,6 +120,7 @@ claw_motor_71 = ClawMotor('claw_motor_71', 1)
 claw_motor_72 = ClawMotor('claw_motor_72', 1)
 claw_motor_73 = ClawMotor('claw_motor_73', 1)
 
+belt_motor_61 = ClawMotor('belt_motor_61', 1)
 
 claw_motor_71.jointValue = claw_motor_71.maxAngle
 claw_motor_72.jointValue = claw_motor_72.maxAngle
@@ -141,7 +149,7 @@ def on_press(key):
         claw_motor_71.pub.publish(claw_motor_71.maxAngle)
         claw_motor_72.pub.publish(claw_motor_72.maxAngle)
         claw_motor_73.pub.publish(claw_motor_73.maxAngle)
-
+        belt_motor_61.wheelModeStop()
         #Make sure motor isn't overloaded when in resting position (caused by gear backlash)
         # claw_motor_71.control_motor(key)
         # claw_motor_72.control_motor(key)
@@ -153,15 +161,21 @@ def on_press(key):
         return False
 
 
+    elif key == Key.space:
+        belt_motor_61.wheelModeStop()   # Stops belt motor if space-bar is pressed.
 
-    claw_motor_71.control_motor(key)
-    claw_motor_72.control_motor(key)
-    claw_motor_73.control_motor(key)
+    else:
 
 
+        claw_motor_71.control_motor(key, 0.05)
+        claw_motor_72.control_motor(key, 0.05)
+        claw_motor_73.control_motor(key, 0.05)
+        belt_motor_61.control_motor(key, 0.05)
+
+    #FOR DEBUG: #
+    rospy.loginfo(belt_motor_61.jointValue)
 
     time.sleep(0.001)
-
     return True
 
 # Collect events until released
