@@ -76,7 +76,7 @@ class ClawMotor:
     def openClaw(self, openValue = 0.1):
 
         # if below, increment joint value.
-        if (self.jointValue+openValue < self.maxAngle and self.sign == 1) or (self.jointValue+openValue < 2*self.maxAngle and self.sign == -1):
+        if (self.jointValue< self.maxAngle-openValue and self.sign == 1) or (self.jointValue < 2*self.maxAngle-openValue and self.sign == -1):
             self.jointValue += openValue
 
         # If max jointValue threshold exceeded, limit to max threshold.
@@ -90,7 +90,7 @@ class ClawMotor:
     def closeClaw(self, openValue = 0.1):
 
         # if above, decrement joint value.
-        if (self.jointValue-openValue > self.minAngle and self.sign == 1) or (self.jointValue-openValue > self.maxAngle and self.sign == -1):
+        if (self.jointValue > self.minAngle+openValue and self.sign == 1) or (self.jointValue > self.maxAngle+openValue and self.sign == -1):
             self.jointValue -= openValue
 
         # if joint value less than lower threshold value, limit to lower threshold value.
