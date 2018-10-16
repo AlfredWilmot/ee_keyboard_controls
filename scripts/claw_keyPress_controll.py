@@ -27,13 +27,13 @@ import pprint
 
 
 class ClawMotor:
-    def __init__(self, name, sign):
+    def __init__(self, name, sign, min_angle, max_angle):
         self.name = name
         self.load = 0.0             # float value representing calculated load from I-draw.
         self.overloadValue = 0.3    # Motor must not exceed this load-value, or will raise overload error exceprion and become unresponseive until power is cycled.
         self.sign = sign            # used to define the rotation-orientation to close claw.
-        self.maxAngle = 5#4.2         # Radians.
-        self.minAngle = -5#0.5          # --||--
+        self.maxAngle = max_angle#4.2         # Radians.
+        self.minAngle = min_angle#0.5          # --||--
 
 
         self.initSubscriber()       # Initializes subscription to motor's load value.
@@ -70,28 +70,35 @@ class ClawMotor:
 
 
 
+    # Positive motor range: [minAngle, maxAngle]
+    # Negative motor range: [maxAngle, 2*maxAngle - minAngle]
 
     def openClaw(self, openValue = 0.1):
 
         # if below, increment joint value.
-        if self.jointValue < self.maxAngle:
-            self.jointValue += self.sign * openValue
+        if (self.jointValue < self.maxAngle and self.sign == 1) or (self.jointValue < 2*self.maxAngle and self.sign == -1):
+            self.jointValue += openValue
 
-        # if, after incrementing, now above joint value: reduce back to max allowed joint value.
-        if self.jointValue > self.maxAngle:
-            self.jointValue = self.maxAngle
-
+        # If max jointValue threshold exceeded, limit to max threshold.
+        else:
+            if self.sign == -1:
+                self.jointValue = 2*self.maxAngle - self.minAngle
+            else:
+                self.jointValue = self.maxAngle
 
 
     def closeClaw(self, openValue = 0.1):
 
         # if above, decrement joint value.
-        if self.jointValue > self.minAngle:
-            self.jointValue -= self.sign * openValue
+        if (self.jointValue > self.minAngle and self.sign == 1) or (self.jointValue > self.maxAngle and self.sign == -1):
+            self.jointValue -= openValue
 
-        # if, after decrementing, now below joint value: increase back to min allowed joint value.
-        if self.jointValue < self.minAngle:
-            self.jointValue = self.minAngle
+        # if joint value less than lower threshold value, limit to lower threshold value.
+        else:
+            if self.sign == -1:
+                self.jointValue = self.maxAngle
+            else:
+                self.jointValue = self.minAngle
 
 
     # Method that makes motor attempt to avoid overload conditions.
@@ -99,9 +106,18 @@ class ClawMotor:
 
 
         if key == Key.up:
-            self.closeClaw(mag)
+
+            if self.sign == 1:
+                self.closeClaw(mag)
+            else:
+                self.openClaw(mag)
+
         elif key == Key.down:
-            self.openClaw(mag)
+            
+            if self.sign == 1:
+                self.openClaw(mag)
+            else:
+                self.closeClaw(mag)
 
         self.pub.publish(self.jointValue)
 
@@ -114,13 +130,13 @@ class ClawMotor:
 #######################
 # INSTANTIATE OBJECTS #
 #######################
-
+                                                        # BUG: need to prevent joint-mode motor range from going < 0 (otherwise managers crashes).
 # Initializing gripper ClawMotor objects.
-claw_motor_71 = ClawMotor('claw_motor_71', 1)
-claw_motor_72 = ClawMotor('claw_motor_72', 1)
-claw_motor_73 = ClawMotor('claw_motor_73', 1)
+claw_motor_71 = ClawMotor('claw_motor_71', 1, 0.5, 4.2)
+claw_motor_72 = ClawMotor('claw_motor_72', -1, 0.5, 4.2)
+claw_motor_73 = ClawMotor('claw_motor_73', 1, 0.5, 4.2)
 
-belt_motor_61 = ClawMotor('belt_motor_61', 1)
+belt_motor_61 = ClawMotor('belt_motor_61', 1, -5, 5)
 
 claw_motor_71.jointValue = claw_motor_71.maxAngle
 claw_motor_72.jointValue = claw_motor_72.maxAngle
@@ -171,9 +187,10 @@ def on_press(key):
         claw_motor_72.control_motor(key, 0.05)
         claw_motor_73.control_motor(key, 0.05)
         belt_motor_61.control_motor(key, 0.05)
+        pprint.pprint(claw_motor_72.jointValue)
 
     #FOR DEBUG: #
-    rospy.loginfo(belt_motor_61.jointValue)
+    #rospy.loginfo(belt_motor_61.jointValue)
 
     time.sleep(0.001)
     return True
