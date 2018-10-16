@@ -76,7 +76,7 @@ class ClawMotor:
     def openClaw(self, openValue = 0.1):
 
         # if below, increment joint value.
-        if (self.jointValue < self.maxAngle and self.sign == 1) or (self.jointValue < 2*self.maxAngle and self.sign == -1):
+        if (self.jointValue+openValue < self.maxAngle and self.sign == 1) or (self.jointValue+openValue < 2*self.maxAngle and self.sign == -1):
             self.jointValue += openValue
 
         # If max jointValue threshold exceeded, limit to max threshold.
@@ -90,7 +90,7 @@ class ClawMotor:
     def closeClaw(self, openValue = 0.1):
 
         # if above, decrement joint value.
-        if (self.jointValue > self.minAngle and self.sign == 1) or (self.jointValue > self.maxAngle and self.sign == -1):
+        if (self.jointValue-openValue > self.minAngle and self.sign == 1) or (self.jointValue-openValue > self.maxAngle and self.sign == -1):
             self.jointValue -= openValue
 
         # if joint value less than lower threshold value, limit to lower threshold value.
@@ -113,7 +113,7 @@ class ClawMotor:
                 self.openClaw(mag)
 
         elif key == Key.down:
-            
+
             if self.sign == 1:
                 self.openClaw(mag)
             else:
@@ -132,9 +132,9 @@ class ClawMotor:
 #######################
                                                         # BUG: need to prevent joint-mode motor range from going < 0 (otherwise managers crashes).
 # Initializing gripper ClawMotor objects.
-claw_motor_71 = ClawMotor('claw_motor_71', 1, 0.5, 4.2)
-claw_motor_72 = ClawMotor('claw_motor_72', -1, 0.5, 4.2)
-claw_motor_73 = ClawMotor('claw_motor_73', 1, 0.5, 4.2)
+claw_motor_71 = ClawMotor('claw_motor_71', 1, 0.8, 4.2)
+claw_motor_72 = ClawMotor('claw_motor_72', -1, 0.8, 4.2)
+claw_motor_73 = ClawMotor('claw_motor_73', 1, 0.8, 4.2)
 
 belt_motor_61 = ClawMotor('belt_motor_61', 1, -5, 5)
 
