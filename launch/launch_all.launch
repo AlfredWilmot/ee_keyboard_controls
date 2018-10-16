@@ -1,5 +1,5 @@
 <launch>
-    <include file="$('EE_keyboard_control/launch/flower_claw_manager.launch')">
-    <include file="$('EE_keyboard_control/launch/start_meta_controller.launch')">
-    <node pkg='EE_keyboard_control' name= 'control_gripper' type='claw_keyPress_controll.py'/>
+    <include file="$(eval find('ee_keyboard_control') + '/launch/claw_gripper_controller.launch')"/>
+    <include file="$(eval find('ee_keyboard_control') + '/launch/belt_gripper_controller.launch')"/>
+    <node pkg='ee_keyboard_control' name= 'control_gripper' type='claw_keyPress_controll.py'/>
 </launch>
